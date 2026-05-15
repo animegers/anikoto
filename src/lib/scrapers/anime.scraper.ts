@@ -105,17 +105,35 @@ export async function scrapeAnimeDetail(slug: string): Promise<AnimeDetail> {
  * The site loads episodes dynamically; we also try the static HTML as a fallback.
  */
 export async function scrapeAnimeEpisodes(slug: string): Promise<AnimeEpisodes> {
-  const $ = await fetchPage(`/watch/${slug}`);
+  let $ = await fetchPage(`/watch/${slug}`);
+  const animeId = $('#watch-main').attr('data-id') ?? '';
+
+  // If the episodes container is empty or loading, fetch via AJAX
+  if (animeId && $('#w-episodes a').length === 0) {
+    try {
+      const { fetchJson } = await import('../fetcher');
+      const data = await fetchJson<{ status: boolean; result: string }>(`/ajax/episode/list/${animeId}`);
+      if (data && data.result) {
+        // Load the HTML chunk from AJAX into cheerio
+        const ajaxDoc = cheerio.load(data.result);
+        $('#w-episodes').html(ajaxDoc.html());
+      }
+    } catch (err) {
+      console.error('Failed to fetch episodes via AJAX:', err);
+    }
+  }
 
   const episodes: Episode[] = [];
 
   // Episodes rendered as <li> inside #w-episodes
-  $('#w-episodes ul.ep-range li a, #w-episodes a[href]').each((_, el) => {
+  $('#w-episodes ul.ep-range li a, #w-episodes a[href], #w-episodes a[data-num]').each((_, el) => {
     const $el = $(el);
     const href = $el.attr('href') ?? '';
-    if (!href.includes('/watch/')) return;
+    // Sometimes it's an anchor without href but with data-num on the watch page
+    if (!href.includes('/watch/') && !$el.attr('data-num')) return;
 
-    const epNum = $el.find('.number, .d-title, span').first().text().trim()
+    const epNum = $el.attr('data-num') 
+      || $el.find('.number, .d-title, span').first().text().trim()
       || href.split('/ep-')[1]
       || '';
 
@@ -124,10 +142,11 @@ export async function scrapeAnimeEpisodes(slug: string): Promise<AnimeEpisodes> 
       title: $el.attr('title')?.trim() || undefined,
       href,
       id: $el.attr('data-id') ?? undefined,
-      hasDub: $el.find('.ep-status.dub').length > 0,
-      hasSub: $el.find('.ep-status.sub').length > 0,
+      dataIds: $el.attr('data-ids') ?? $el.attr('data-id') ?? undefined,
+      hasDub: $el.find('.ep-status.dub').length > 0 || $el.text().toLowerCase().includes('dub') || $el.attr('data-dub') === '1',
+      hasSub: $el.find('.ep-status.sub').length > 0 || $el.text().toLowerCase().includes('sub') || $el.attr('data-sub') === '1',
     });
   });
 
-  return { animeId: $('#watch-main').attr('data-id') ?? '', slug, episodes };
+  return { animeId, slug, episodes };
 }

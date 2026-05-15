@@ -43,3 +43,5 @@ next-env.d.ts
 # AI
 AGENTS.md
 CLAUDE.md
+
+extractor.js

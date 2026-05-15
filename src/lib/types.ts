@@ -112,6 +112,7 @@ export interface Episode {
   title?: string;
   href: string;
   id?: string;
+  dataIds?: string;
   hasDub?: boolean;
   hasSub?: boolean;
 }
