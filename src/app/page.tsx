@@ -118,7 +118,7 @@ export default function HomePage() {
         { name: "url", type: "string", optional: false, desc: "The target m3u8 or subtitle URL to proxy" },
         { name: "referer", type: "string", optional: true, desc: "The referer header to bypass hotlink protection" },
       ],
-      example: "/api/proxy?url=https%3A%2F%2Fcdn.mewstream.buzz%2F...%2Fmaster.m3u8&referer=https%3A%2F%2Fmegaplay.buzz%2F",
+      example: "/api/proxy?url=https%3A%2F%2Fcdn.mewstream.buzz%2Fanime%2F59770ea2e6ec69c5fafe3be3495d68d1%2F07bd4a7cec2dc295a73179453b1170db%2Fmaster.m3u8&referer=https%3A%2F%2Fmegaplay.buzz%2F",
     },
   ];
 
