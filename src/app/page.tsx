@@ -192,7 +192,7 @@ export default function HomePage() {
           color: "#64748b",
           marginBottom: "24px",
         }}>
-          ✦ Author: <span style={{ color: "#a5b4fc", fontWeight: 600 }}>Teramoto</span>
+          Author: <span style={{ color: "#a5b4fc", fontWeight: 600 }}>Teramoto</span>
         </p>
 
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
