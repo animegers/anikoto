@@ -68,7 +68,8 @@ export async function scrapeWatch(slug: string, epNum: string): Promise<WatchDat
 
   // Helper to generate proxy URLs using either Cloudflare Worker or internal Next.js proxy
   const getProxyUrl = (targetUrl: string, referer?: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_CF_WORKER_URL || process.env.CF_WORKER_URL || '/api/proxy';
+    const rawBaseUrl = process.env.NEXT_PUBLIC_CF_WORKER_URL || process.env.CF_WORKER_URL || '/api/proxy';
+    const baseUrl = rawBaseUrl.trim();
     const separator = baseUrl.includes('?') ? '&' : '?';
     const urlParam = `url=${encodeURIComponent(targetUrl)}`;
     const refererParam = referer ? `&referer=${encodeURIComponent(referer)}` : '';
