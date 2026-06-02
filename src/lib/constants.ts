@@ -1,4 +1,4 @@
-export const BASE_URL = 'https://anikoto.net';
+export const BASE_URL = 'https://anikoto.cz';
 
 export const DEFAULT_HEADERS = {
   'User-Agent':
