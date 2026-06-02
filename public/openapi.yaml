@@ -30,6 +30,8 @@ info:
     name: Teramoto
 
 servers:
+  - url: https://anikoto-scrap-api.vercel.app/api
+    description: Production server
   - url: /api
     description: Local development server
 

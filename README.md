@@ -45,7 +45,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the interactive API docs.
+Open [https://anikoto-scrap-api.vercel.app](https://anikoto-scrap-api.vercel.app) to see the interactive API docs.
 
 ---
 
@@ -66,7 +66,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the interactive API d
 | GET | `/api/watch/:slug?ep=` | Streaming sources (m3u8 + subs) |
 | GET | `/api/proxy?url=` | Streaming proxy (CORS bypass) |
 
-See the **full interactive documentation** at [`/`](http://localhost:3000) or in [`public/openapi.yaml`](./public/openapi.yaml).
+See the **full interactive documentation** at [`/`](https://anikoto-scrap-api.vercel.app) or in [`public/openapi.yaml`](./public/openapi.yaml).
 
 ---
 

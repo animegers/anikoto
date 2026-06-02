@@ -2,7 +2,7 @@
 "use client";
 
 import spec from "@/lib/openapi-spec";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // Tag colours
 const TAG_COLORS: Record<string, string> = {
@@ -33,6 +33,11 @@ export default function DocsPage() {
     data: unknown;
     loading: boolean;
   } | null>(null);
+  const [origin, setOrigin] = useState<string>("https://anikoto-scrap-api.vercel.app");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   if (activePath !== prevActivePath) {
     setPrevActivePath(activePath);
@@ -171,7 +176,7 @@ export default function DocsPage() {
               <div className="code-block">
                 <div className="code-block-header">cURL</div>
                 <div className="code-block-body">
-                  <pre>{`curl -X ${method.toUpperCase()} "http://localhost:3000${previewUrl}" \\
+                  <pre>{`curl -X ${method.toUpperCase()} "${origin}${previewUrl}" \\
   -H "Accept: application/json"`}</pre>
                 </div>
               </div>
