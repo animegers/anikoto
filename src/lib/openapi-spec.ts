@@ -328,6 +328,21 @@ const spec = {
                             },
                           },
                         },
+                        related: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              id: { type: "string" },
+                              title: { type: "string" },
+                              titleJp: { type: "string" },
+                              image: { type: "string" },
+                              relation: { type: "string" },
+                              href: { type: "string" },
+                              slug: { type: "string" },
+                            },
+                          },
+                        },
                       },
                     },
                   },

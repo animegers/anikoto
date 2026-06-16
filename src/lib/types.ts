@@ -86,6 +86,16 @@ export interface HomeData {
 
 // ─── Anime Detail ────────────────────────────────────────────────────────────
 
+export interface RelatedAnime {
+  id?: string;
+  title: string;
+  titleJp?: string;
+  image: string;
+  relation?: string;
+  href: string;
+  slug?: string;
+}
+
 export interface AnimeDetail {
   id: string;
   slug: string;
@@ -110,6 +120,7 @@ export interface AnimeDetail {
   producers: string[];
   watchUrl: string;
   episodes: AnimeEpisodes;
+  related?: RelatedAnime[];
 }
 
 // ─── Episode List ────────────────────────────────────────────────────────────
@@ -130,6 +141,7 @@ export interface AnimeEpisodes {
   animeId: string;
   slug: string;
   episodes: Episode[];
+  related?: RelatedAnime[];
 }
 
 // ─── Search / Filter ─────────────────────────────────────────────────────────

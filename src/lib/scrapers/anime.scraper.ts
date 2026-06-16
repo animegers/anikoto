@@ -1,9 +1,50 @@
 import * as cheerio from 'cheerio';
-import { fetchPage } from '../fetcher';
-import { AnimeDetail, Episode, AnimeEpisodes } from '../types';
+import { fetchPage, fetchJson } from '../fetcher';
+import { AnimeDetail, Episode, AnimeEpisodes, RelatedAnime } from '../types';
 import { BASE_URL } from '../constants';
 import { getOrSet } from '../cache';
 import { CACHE_TTL } from '../constants';
+
+// Helper to parse related anime from watch page
+function parseRelated($: cheerio.CheerioAPI): RelatedAnime[] {
+  const relatedList: RelatedAnime[] = [];
+
+  $('#w-related .item.flexserieslist').each((_, el) => {
+    const $el = $(el);
+    const id = $el.attr('data-id') ?? undefined;
+
+    const $posterLink = $el.find('.poster a');
+    const href = $posterLink.attr('href') ?? '';
+    const image = $posterLink.find('img').attr('src') ?? '';
+
+    const $nameLink = $el.find('.name.d-title');
+    const title = $nameLink.text().trim();
+    const titleJp = $nameLink.attr('data-jp')?.trim() || undefined;
+
+    let slug: string | undefined;
+    if (href.includes('/watch/')) {
+      const parts = href.split('/watch/');
+      const rawSlug = parts[parts.length - 1];
+      slug = rawSlug.split('?')[0].replace(/\/$/, '');
+    }
+
+    const $relation = $el.find('.relation');
+    const relationType = $relation.attr('id') || undefined;
+    const relationText = $relation.text().trim() || undefined;
+
+    relatedList.push({
+      id,
+      title,
+      titleJp,
+      image,
+      href,
+      slug,
+      relation: relationText || relationType,
+    });
+  });
+
+  return relatedList;
+}
 
 // ─── Anime Detail ────────────────────────────────────────────────────────────
 
@@ -80,6 +121,19 @@ export async function scrapeAnimeDetail(
   // Reuse pre-fetched episodes to avoid a redundant scrape
   const episodes = prefetchedEpisodes ?? await scrapeAnimeEpisodes(slug);
 
+  let related: RelatedAnime[] = [];
+  if (animeId) {
+    try {
+      const ajaxData = await fetchJson<{ status: number; result: string }>(`/api/watch-order/${animeId}`);
+      if (ajaxData && ajaxData.status === 200 && ajaxData.result) {
+        const relatedDoc = cheerio.load(ajaxData.result);
+        related = parseRelated(relatedDoc);
+      }
+    } catch (err) {
+      console.error('Failed to fetch related anime in scrapeAnimeDetail:', err);
+    }
+  }
+
   return {
     id: animeId,
     slug,
@@ -104,6 +158,7 @@ export async function scrapeAnimeDetail(
     producers,
     watchUrl: animeUrl || `${BASE_URL}/watch/${slug}`,
     episodes,
+    related,
   };
 }
 
@@ -117,7 +172,6 @@ export async function scrapeAnimeDetail(
 async function fetchAllEpisodes(slug: string): Promise<AnimeEpisodes> {
   const cacheKey = `anime:episodes:raw:${slug}`;
   return getOrSet(cacheKey, async () => {
-    const { fetchJson } = await import('../fetcher');
     const $ = await fetchPage(`/watch/${slug}`);
     const animeId = $('#watch-main').attr('data-id') ?? '';
 
@@ -162,7 +216,20 @@ async function fetchAllEpisodes(slug: string): Promise<AnimeEpisodes> {
       });
     });
 
-    return { animeId, slug, episodes: allEpisodes };
+    let related: RelatedAnime[] = [];
+    if (animeId) {
+      try {
+        const ajaxData = await fetchJson<{ status: number; result: string }>(`/api/watch-order/${animeId}`);
+        if (ajaxData && ajaxData.status === 200 && ajaxData.result) {
+          const relatedDoc = cheerio.load(ajaxData.result);
+          related = parseRelated(relatedDoc);
+        }
+      } catch (err) {
+        console.error('Failed to fetch related anime in fetchAllEpisodes:', err);
+      }
+    }
+
+    return { animeId, slug, episodes: allEpisodes, related };
   }, CACHE_TTL.EPISODE);
 }
 
@@ -171,7 +238,7 @@ export async function scrapeAnimeEpisodes(
   startEpisode?: number,
   endEpisode?: number
 ): Promise<AnimeEpisodes> {
-  const { animeId, episodes: allEpisodes } = await fetchAllEpisodes(slug);
+  const { animeId, episodes: allEpisodes, related } = await fetchAllEpisodes(slug);
 
   // Apply range filtering if startEpisode and endEpisode are provided
   let filteredEpisodes = allEpisodes;
@@ -182,5 +249,5 @@ export async function scrapeAnimeEpisodes(
     });
   }
 
-  return { animeId, slug, episodes: filteredEpisodes };
+  return { animeId, slug, episodes: filteredEpisodes, related };
 }
