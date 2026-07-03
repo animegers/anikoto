@@ -541,34 +541,64 @@ const spec = {
       get: {
         tags: ["Schedule"],
         summary: "Weekly airing schedule",
-        description: "Get the weekly airing schedule, grouped by day of the week.",
+        description:
+          "Get the 7-day airing schedule starting from today (UTC). Each day is fetched in parallel via the site's `/ajax/schedule/date` endpoint.\n\nTimestamps are UTC-midnight Unix values spaced 86 400 s apart.\n\nAnimeCard fields repurposed for schedule items:\n- `date` — airing time in the requested timezone (e.g. `\"21:00\"`)\n- `type` — episode label (e.g. `\"Episode 13\"`)\n- `image` — always an empty string (not available from this endpoint)",
         operationId: "getSchedule",
         parameters: [
+          {
+            name: "tz",
+            in: "query",
+            required: false,
+            description:
+              "UTC offset in hours (e.g. 7 for UTC+7, -5 for UTC-5). Defaults to 0 (UTC). Affects the airing times shown in each item's `date` field.",
+            schema: { type: "integer", minimum: -12, maximum: 14 },
+            example: 7,
+          },
           {
             name: "refresh",
             in: "query",
             required: false,
-            description: "Set to 1 to bypass cache",
+            description: "Set to 1 to bypass cache and force a fresh scrape",
             schema: { type: "string", enum: ["1"] },
           },
         ],
         responses: {
           "200": {
-            description: "Weekly schedule",
+            description: "7-day schedule grouped by day",
             content: {
               "application/json": {
                 schema: {
                   type: "object",
                   properties: {
                     ok: { type: "boolean", example: true },
-                    cached: { type: "boolean" },
                     data: {
                       type: "array",
+                      description: "Array of 7 days starting from today (UTC midnight)",
                       items: {
                         type: "object",
                         properties: {
-                          day: { type: "string", description: "Day of the week (e.g. Monday)" },
-                          animes: { type: "array", items: { $ref: "AnimeCard" } },
+                          day: {
+                            type: "string",
+                            description: "Day label derived from the UTC-midnight timestamp",
+                            example: "Sat Jul 04",
+                          },
+                          animes: {
+                            type: "array",
+                            description: "Anime airing on this day. Empty array if nothing airs.",
+                            items: {
+                              type: "object",
+                              properties: {
+                                id: { type: "string", description: "Same as slug" },
+                                slug: { type: "string", example: "one-piece-odmau" },
+                                title: { type: "string", example: "One Piece" },
+                                titleJp: { type: "string", example: "One Piece" },
+                                href: { type: "string", description: "API link to anime detail", example: "/api/anime/one-piece-odmau" },
+                                image: { type: "string", description: "Always empty string for schedule items", example: "" },
+                                date: { type: "string", description: "Airing time in the requested timezone", example: "21:00" },
+                                type: { type: "string", description: "Episode label", example: "Episode 13" },
+                              },
+                            },
+                          },
                         },
                       },
                     },

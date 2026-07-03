@@ -17,11 +17,12 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const refresh = searchParams.get('refresh') === '1';
+    const tz = searchParams.has('tz') ? parseInt(searchParams.get('tz')!, 10) : 0;
 
-    const key = 'schedule';
+    const key = `schedule:tz${tz}`;
     const data = refresh
-      ? await scrapeSchedule()
-      : await getOrSet(key, scrapeSchedule, CACHE_TTL.SCHEDULE);
+      ? await scrapeSchedule(tz)
+      : await getOrSet(key, () => scrapeSchedule(tz), CACHE_TTL.SCHEDULE);
 
     return NextResponse.json({ ok: true, data });
   } catch (err: unknown) {
