@@ -878,7 +878,11 @@ components:
           type: integer
         hasNextPage:
           type: boolean
+        hasPreviousPage:
+          type: boolean
         maxPage:
+          type: integer
+        minPage:
           type: integer
         totalResults:
           type: integer
@@ -894,7 +898,11 @@ components:
           type: integer
         hasNextPage:
           type: boolean
+        hasPreviousPage:
+          type: boolean
         maxPage:
+          type: integer
+        minPage:
           type: integer
         params:
           type: object

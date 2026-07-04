@@ -151,7 +151,9 @@ export interface SearchResult {
   keyword: string;
   currentPage?: number;
   hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
   maxPage?: number;
+  minPage?: number;
   totalResults?: number;
 }
 
@@ -183,7 +185,9 @@ export interface FilterResult {
   results: AnimeCard[];
   currentPage: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
   maxPage?: number;
+  minPage?: number;
   params: FilterParams;
   options?: FilterOptions;
 }

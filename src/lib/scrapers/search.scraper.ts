@@ -81,7 +81,7 @@ export async function scrapeSearch(keyword: string, page = 1): Promise<SearchRes
     });
   }
 
-  return { results, keyword, currentPage, hasNextPage, maxPage };
+  return { results, keyword, currentPage, hasNextPage, hasPreviousPage: currentPage > 1, maxPage, minPage: 1 };
 }
 
 // ─── Filter ───────────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export async function scrapeFilter(params: FilterParams): Promise<FilterResult> 
     });
   }
 
-  return { results, currentPage, hasNextPage, maxPage, params };
+  return { results, currentPage, hasNextPage, hasPreviousPage: currentPage > 1, maxPage, minPage: 1, params };
 }
 
 // ─── Listing pages (Latest/Popular/Ongoing etc.) ──────────────────────────────
@@ -142,7 +142,7 @@ export async function scrapeFilter(params: FilterParams): Promise<FilterResult> 
 export async function scrapeListingPage(
   path: string,
   page = 1
-): Promise<{ results: AnimeCard[]; currentPage: number; hasNextPage: boolean }> {
+): Promise<{ results: AnimeCard[]; currentPage: number; hasNextPage: boolean; hasPreviousPage: boolean; minPage?: number }> {
   const url = page > 1 ? `${path}?page=${page}` : path;
   const $ = await fetchPage(url);
 
@@ -155,5 +155,5 @@ export async function scrapeListingPage(
     $('.paging .next:not(.disabled), .pagination .next:not(.disabled)').length > 0 ||
     $('.pagination a[rel="next"], .paging a[rel="next"], a[rel="next"]').length > 0;
 
-  return { results, currentPage: page, hasNextPage };
+  return { results, currentPage: page, hasNextPage, hasPreviousPage: page > 1, minPage: 1 };
 }
