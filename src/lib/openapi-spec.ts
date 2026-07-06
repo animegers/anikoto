@@ -634,7 +634,7 @@ const spec = {
         tags: ["Schedule"],
         summary: "Weekly airing schedule",
         description:
-          "Get the 7-day airing schedule starting from today (UTC). Each day is fetched in parallel via the site's `/ajax/schedule/date` endpoint.\n\nTimestamps are UTC-midnight Unix values spaced 86 400 s apart.\n\nAnimeCard fields repurposed for schedule items:\n- `date` — airing time in the requested timezone (e.g. `\"21:00\"`)\n- `type` — episode label (e.g. `\"Episode 13\"`)\n- `image` — always an empty string (not available from this endpoint)",
+          "Get the 7-day airing schedule starting from today (UTC). Each day is fetched in parallel via the site's `/ajax/schedule/date` endpoint.\n\nTimestamps are UTC-midnight Unix values spaced 86 400 s apart.\n\nAnimeCard fields repurposed for schedule items:\n- `date` — airing time in the requested timezone (e.g. `\"21:00\"`)\n- `type` — episode label (e.g. `\"Episode 13\"`)\n- `image` — resolved poster image URL (requires setting `images=true`)",
         operationId: "getSchedule",
         parameters: [
           {
@@ -652,6 +652,14 @@ const spec = {
             required: false,
             description: "Set to 1 to bypass cache and force a fresh scrape",
             schema: { type: "string", enum: ["1"] },
+          },
+          {
+            name: "images",
+            in: "query",
+            required: false,
+            description: "Set to true to resolve and fetch poster images (defaults to false)",
+            schema: { type: "boolean" },
+            example: true,
           },
         ],
         responses: {
@@ -685,7 +693,7 @@ const spec = {
                                 title: { type: "string", example: "One Piece" },
                                 titleJp: { type: "string", example: "One Piece" },
                                 href: { type: "string", description: "API link to anime detail", example: "/api/anime/one-piece-odmau" },
-                                image: { type: "string", description: "Always empty string for schedule items", example: "" },
+                                image: { type: "string", description: "Poster image URL (empty string if images is false/omitted or image fetch fails)", example: "https://cdn.anipixcdn.co/thumbnail/a1ea8c4b315b25f06e3c212423037951.jpg" },
                                 date: { type: "string", description: "Airing time in the requested timezone", example: "21:00" },
                                 type: { type: "string", description: "Episode label", example: "Episode 13" },
                               },

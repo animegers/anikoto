@@ -21,6 +21,29 @@ async function fetchImageBySlug(slug: string): Promise<string> {
   );
 }
 
+/**
+ * Map items concurrently with a limit.
+ */
+async function pMap<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+
+  async function worker() {
+    while (index < items.length) {
+      const i = index++;
+      results[i] = await fn(items[i]);
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+  await Promise.all(workers);
+  return results;
+}
+
 /** Parse `.item` `<a>` elements from a container into AnimeCard[]. */
 function parseItems(
   $container: ReturnType<ReturnType<typeof cheerio.load>>,
@@ -93,8 +116,13 @@ function labelFromTimestamp(ts: number): string {
  *
  * @param tzOffset - UTC offset in hours (e.g. 7 for UTC+7). Defaults to 0.
  * @param startDate - Override the start date (defaults to today UTC).
+ * @param images - If true, fetches poster images (defaults to false).
  */
-export async function scrapeSchedule(tzOffset = 0, startDate?: Date): Promise<ScheduleDay[]> {
+export async function scrapeSchedule(
+  tzOffset = 0,
+  startDate?: Date,
+  images = false
+): Promise<ScheduleDay[]> {
   const start = utcMidnight(startDate);
 
   const days = Array.from({ length: 7 }, (_, i) => ({
@@ -102,29 +130,38 @@ export async function scrapeSchedule(tzOffset = 0, startDate?: Date): Promise<Sc
     day: labelFromTimestamp(start + i * SECONDS_PER_DAY),
   }));
 
-  const results = await Promise.all(
+  // Fetch the schedule HTML for all 7 days in parallel
+  const daysData = await Promise.all(
     days.map(({ timestamp, day }) =>
       fetchJson<{ status: number; result: string }>(
         `/ajax/schedule/date?tz=${tzOffset}&time=${timestamp}`
       )
-        .then(async ({ result }) => {
+        .then(({ result }) => {
           if (!result) return { day, animes: [] as AnimeCard[] };
           const $ = cheerio.load(result);
-          const animes = parseItems($('body'), $);
-
-          // Resolve images for all anime in this day in parallel
-          const images = await Promise.all(
-            animes.map((a) => (a.slug ? fetchImageBySlug(a.slug) : Promise.resolve('')))
-          );
-          animes.forEach((a, i) => {
-            if (images[i]) a.image = images[i];
-          });
-
-          return { day, animes };
+          return { day, animes: parseItems($('body'), $) };
         })
         .catch(() => ({ day, animes: [] as AnimeCard[] }))
     )
   );
 
-  return results;
+  if (images) {
+    // Flatten all animes to resolve images globally with concurrency limit
+    const allAnimes = daysData.flatMap((d) => d.animes);
+
+    await pMap(
+      allAnimes,
+      5, // limit to 5 concurrent image fetches globally
+      async (anime) => {
+        if (anime.slug) {
+          const img = await fetchImageBySlug(anime.slug);
+          if (img) {
+            anime.image = img;
+          }
+        }
+      }
+    );
+  }
+
+  return daysData;
 }

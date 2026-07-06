@@ -18,11 +18,12 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const refresh = searchParams.get('refresh') === '1';
     const tz = searchParams.has('tz') ? parseInt(searchParams.get('tz')!, 10) : 0;
+    const images = searchParams.get('images') === 'true';
 
-    const key = `schedule:tz${tz}`;
+    const key = `schedule:tz${tz}:img:${images}`;
     const data = refresh
-      ? await scrapeSchedule(tz)
-      : await getOrSet(key, () => scrapeSchedule(tz), CACHE_TTL.SCHEDULE);
+      ? await scrapeSchedule(tz, undefined, images)
+      : await getOrSet(key, () => scrapeSchedule(tz, undefined, images), CACHE_TTL.SCHEDULE);
 
     return NextResponse.json({ ok: true, data });
   } catch (err: unknown) {
