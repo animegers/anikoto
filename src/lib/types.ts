@@ -183,6 +183,7 @@ export interface FilterOptions {
 
 export interface FilterResult {
   results: AnimeCard[];
+  topRated?: AnimeCard[];
   currentPage: number;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
