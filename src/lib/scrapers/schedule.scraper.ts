@@ -1,8 +1,25 @@
 import * as cheerio from 'cheerio';
-import { fetchJson } from '../fetcher';
+import { fetchJson, fetchPage } from '../fetcher';
 import { ScheduleDay, AnimeCard } from '../types';
+import { getOrSet } from '../cache';
 
 const SECONDS_PER_DAY = 86_400;
+
+async function fetchImageBySlug(slug: string): Promise<string> {
+  return getOrSet(
+    `schedule:img:${slug}`,
+    async () => {
+      try {
+        const $ = await fetchPage(`/watch/${slug}`);
+        const imgSrc = $('.binfo .poster img').attr('src') ?? '';
+        return imgSrc;
+      } catch {
+        return '';
+      }
+    },
+    86400 // 24 hours
+  );
+}
 
 /** Parse `.item` `<a>` elements from a container into AnimeCard[]. */
 function parseItems(
@@ -36,7 +53,7 @@ function parseItems(
       slug,
       title,
       titleJp: titleJp || undefined,
-      image: '',
+      image: '', // Will be filled in after batch resolution
       href: slug ? `/api/anime/${slug}` : href,
       type: epText || undefined,
       date: timeText || undefined,
@@ -90,10 +107,20 @@ export async function scrapeSchedule(tzOffset = 0, startDate?: Date): Promise<Sc
       fetchJson<{ status: number; result: string }>(
         `/ajax/schedule/date?tz=${tzOffset}&time=${timestamp}`
       )
-        .then(({ result }) => {
+        .then(async ({ result }) => {
           if (!result) return { day, animes: [] as AnimeCard[] };
           const $ = cheerio.load(result);
-          return { day, animes: parseItems($('body'), $) };
+          const animes = parseItems($('body'), $);
+
+          // Resolve images for all anime in this day in parallel
+          const images = await Promise.all(
+            animes.map((a) => (a.slug ? fetchImageBySlug(a.slug) : Promise.resolve('')))
+          );
+          animes.forEach((a, i) => {
+            if (images[i]) a.image = images[i];
+          });
+
+          return { day, animes };
         })
         .catch(() => ({ day, animes: [] as AnimeCard[] }))
     )
