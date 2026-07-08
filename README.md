@@ -33,7 +33,7 @@
 
 ## ✨ Features
 
-- 13 REST endpoints covering home, search, filter, anime detail, episodes, tooltip, schedule, streaming sources, and a streaming proxy
+- 15 REST endpoints covering home, search, filter, anime detail, episodes, related, recommendations, tooltip, schedule, streaming sources, and a streaming proxy
 - Response envelope — every response is `{ ok: true, data: ... }` or `{ ok: false, message: "..." }`
 - In-memory cache (TTL per endpoint) — add `?refresh=1` to any request to bypass
 - Interactive **Swagger UI** docs at `/` powered by an OpenAPI 3.0 spec (`public/openapi.yaml`)
@@ -62,8 +62,10 @@ Open [http://localhost:3000](http://localhost:3000) to see the interactive API d
 | GET | `/api/home` | Home data: spotlight, latest eps, top anime |
 | GET | `/api/search?keyword=&page=` | Search anime by keyword (paginated) |
 | GET | `/api/filter` | Advanced multi-param filter (paginated, returns `results` & optional `topRated`) |
-| GET | `/api/anime/:slug` | Anime detail info |
+| GET | `/api/anime/:slug` | Anime detail info (without related or recommendations) |
 | GET | `/api/anime/:slug/episodes` | Episode list (with range filter) |
+| GET | `/api/anime/:slug/related` | Related anime (watch order/sequels/prequels) |
+| GET | `/api/anime/:slug/recommendations` | Recommended anime list (cards) |
 | GET | `/api/anime/tooltip/:id` | Anime tooltip / preview info (by poster's `data-tip` ID) |
 | GET | `/api/latest?type=&page=` | Paginated listings: `latest-updated`, `new-release`, `most-viewed` (returns `results` & optional `topRated`) |
 | GET | `/api/status?type=&page=` | Airing status listing: `currently-airing`, `finished-airing`, `not-yet-aired` (returns `results` & optional `topRated`) |

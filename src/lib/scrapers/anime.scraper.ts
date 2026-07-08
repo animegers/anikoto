@@ -1,8 +1,8 @@
 import * as cheerio from 'cheerio';
 import { fetchPage, fetchJson } from '../fetcher';
-import { AnimeDetail, Episode, AnimeEpisodes, RelatedAnime } from '../types';
+import { AnimeDetail, Episode, AnimeEpisodes, RelatedAnime, AnimeCard } from '../types';
 import { BASE_URL } from '../constants';
-import { getOrSet } from '../cache';
+import cache, { getOrSet } from '../cache';
 import { CACHE_TTL } from '../constants';
 
 // Helper to parse related anime from watch page
@@ -61,13 +61,83 @@ function parseRelated($: cheerio.CheerioAPI, currentSlug?: string): RelatedAnime
   return relatedList;
 }
 
+// Helper to parse recommended anime from watch page
+function parseRecommendations($: cheerio.CheerioAPI): AnimeCard[] {
+  const recommendations: AnimeCard[] = [];
+  const seenKeys = new Set<string>();
+
+  $('.w-side-section').each((_, section) => {
+    const $section = $(section);
+    const titleText = $section.find('.head .title').text().trim();
+    if (titleText.toLowerCase() !== 'recommended') {
+      return;
+    }
+
+    $section.find('.body .items .item').each((__, el) => {
+      const $el = $(el);
+      const href = $el.attr('href') ?? '';
+
+      const $posterDiv = $el.find('.poster');
+      const id = $posterDiv.attr('data-tip') ?? '';
+      const image = $posterDiv.find('img').attr('src') ?? '';
+
+      const $nameDiv = $el.find('.info .name.d-title');
+      const title = $nameDiv.text().trim();
+      const titleJp = $nameDiv.attr('data-jp')?.trim() || undefined;
+
+      let slug = '';
+      if (href.includes('/watch/')) {
+        const parts = href.split('/watch/');
+        const rawSlug = parts[parts.length - 1];
+        slug = rawSlug.split('?')[0].replace(/\/$/, '');
+      }
+
+      let type: string | undefined;
+      let totalEpisodes: number | undefined;
+      let date: string | undefined;
+
+      $el.find('.info .meta .dot').each((___, dotEl) => {
+        const text = $(dotEl).text().trim();
+        if (!text) return;
+
+        if (text.endsWith('Eps')) {
+          const epVal = text.replace('Eps', '').trim();
+          totalEpisodes = epVal === '?' ? undefined : parseInt(epVal, 10);
+        } else if (/^\d{4}$/.test(text) || text.toLowerCase() === 'unknown') {
+          date = text;
+        } else {
+          type = text;
+        }
+      });
+
+      const key = slug || href || title;
+      if (seenKeys.has(key)) return;
+      seenKeys.add(key);
+
+      recommendations.push({
+        id,
+        slug,
+        title,
+        titleJp,
+        image,
+        href,
+        type,
+        totalEpisodes,
+        date,
+      });
+    });
+  });
+
+  return recommendations;
+}
+
 // ─── Anime Detail ────────────────────────────────────────────────────────────
 
 export async function scrapeAnimeDetail(
   slug: string,
-  prefetchedEpisodes?: AnimeEpisodes
+  refresh?: boolean
 ): Promise<AnimeDetail> {
-  const $ = await fetchPage(`/watch/${slug}`);
+  const $ = await fetchPage(`/watch/${slug}`, undefined, refresh);
 
   const $main = $('#watch-main');
   const animeId = $main.attr('data-id') ?? '';
@@ -137,22 +207,6 @@ export async function scrapeAnimeDetail(
     return $(el).clone().children().remove().end().text().trim().toLowerCase().startsWith('episode');
   }).find('span').text().trim();
 
-  // Reuse pre-fetched episodes to avoid a redundant scrape
-  const episodes = prefetchedEpisodes ?? await scrapeAnimeEpisodes(slug);
-
-  let related: RelatedAnime[] = episodes.related ?? [];
-  if (related.length === 0 && animeId) {
-    try {
-      const ajaxData = await fetchJson<{ status: number; result: string }>(`/api/watch-order/${animeId}`);
-      if (ajaxData && ajaxData.status === 200 && ajaxData.result) {
-        const relatedDoc = cheerio.load(ajaxData.result);
-        related = parseRelated(relatedDoc, slug);
-      }
-    } catch (err) {
-      console.error('Failed to fetch related anime in scrapeAnimeDetail:', err);
-    }
-  }
-
   return {
     id: animeId,
     slug,
@@ -176,8 +230,6 @@ export async function scrapeAnimeDetail(
     studios,
     producers,
     watchUrl: animeUrl || `${BASE_URL}/watch/${slug}`,
-    episodes,
-    related,
   };
 }
 
@@ -188,37 +240,27 @@ export async function scrapeAnimeDetail(
  * Result is internally cached by animeId so that subsequent callers
  * (e.g. scrapeWatch) do not re-fetch the same data within the same TTL window.
  */
-async function fetchAllEpisodes(slug: string): Promise<AnimeEpisodes> {
+async function fetchAllEpisodes(slug: string, refresh?: boolean): Promise<AnimeEpisodes> {
   const cacheKey = `anime:episodes:raw:${slug}`;
+  if (refresh) {
+    cache.del(cacheKey);
+  }
+
   return getOrSet(cacheKey, async () => {
-    const $ = await fetchPage(`/watch/${slug}`);
+    const $ = await fetchPage(`/watch/${slug}`, undefined, refresh);
     const animeId = $('#watch-main').attr('data-id') ?? '';
 
-    // Kick off both the episode-list AJAX fallback and the watch-order (related)
-    // fetch in parallel — they are independent of each other.
-    const episodeAjaxPromise = (async () => {
-      if (animeId && $('#w-episodes a').length === 0) {
-        try {
-          const data = await fetchJson<{ status: boolean; result: string }>(`/ajax/episode/list/${animeId}`);
-          if (data && data.result) {
-            const ajaxDoc = cheerio.load(data.result);
-            $('#w-episodes').html(ajaxDoc.html());
-          }
-        } catch (err) {
-          console.error('Failed to fetch episodes via AJAX:', err);
+    if (animeId && $('#w-episodes a').length === 0) {
+      try {
+        const data = await fetchJson<{ status: boolean; result: string }>(`/ajax/episode/list/${animeId}`);
+        if (data && data.result) {
+          const ajaxDoc = cheerio.load(data.result);
+          $('#w-episodes').html(ajaxDoc.html());
         }
+      } catch (err) {
+        console.error('Failed to fetch episodes via AJAX:', err);
       }
-    })();
-
-    const watchOrderPromise = animeId
-      ? fetchJson<{ status: number; result: string }>(`/api/watch-order/${animeId}`).catch((err) => {
-          console.error('Failed to fetch related anime in fetchAllEpisodes:', err);
-          return null;
-        })
-      : Promise.resolve(null);
-
-    // Wait for episode AJAX to finish before parsing (it mutates the cheerio tree)
-    await episodeAjaxPromise;
+    }
 
     const allEpisodes: Episode[] = [];
 
@@ -247,24 +289,17 @@ async function fetchAllEpisodes(slug: string): Promise<AnimeEpisodes> {
       });
     });
 
-    // Resolve the already-in-flight watch-order request
-    let related: RelatedAnime[] = [];
-    const ajaxData = await watchOrderPromise;
-    if (ajaxData && ajaxData.status === 200 && ajaxData.result) {
-      const relatedDoc = cheerio.load(ajaxData.result);
-      related = parseRelated(relatedDoc, slug);
-    }
-
-    return { animeId, slug, episodes: allEpisodes, related };
+    return { animeId, slug, episodes: allEpisodes };
   }, CACHE_TTL.EPISODE);
 }
 
 export async function scrapeAnimeEpisodes(
   slug: string,
   startEpisode?: number,
-  endEpisode?: number
+  endEpisode?: number,
+  refresh?: boolean
 ): Promise<AnimeEpisodes> {
-  const { animeId, episodes: allEpisodes, related } = await fetchAllEpisodes(slug);
+  const { animeId, episodes: allEpisodes } = await fetchAllEpisodes(slug, refresh);
 
   // Apply range filtering if startEpisode and endEpisode are provided
   let filteredEpisodes = allEpisodes;
@@ -275,5 +310,43 @@ export async function scrapeAnimeEpisodes(
     });
   }
 
-  return { animeId, slug, episodes: filteredEpisodes, related };
+  return { animeId, slug, episodes: filteredEpisodes };
+}
+
+// ─── Related Anime & Recommendations ──────────────────────────────────────────
+
+export async function scrapeRelatedAnime(slug: string, refresh?: boolean): Promise<RelatedAnime[]> {
+  const cacheKey = `anime:related:${slug}`;
+  if (refresh) {
+    cache.del(cacheKey);
+  }
+
+  return getOrSet(cacheKey, async () => {
+    const $ = await fetchPage(`/watch/${slug}`, undefined, refresh);
+    const animeId = $('#watch-main').attr('data-id') ?? '';
+    if (!animeId) return [];
+
+    try {
+      const ajaxData = await fetchJson<{ status: number; result: string }>(`/api/watch-order/${animeId}`);
+      if (ajaxData && ajaxData.status === 200 && ajaxData.result) {
+        const relatedDoc = cheerio.load(ajaxData.result);
+        return parseRelated(relatedDoc, slug);
+      }
+    } catch (err) {
+      console.error('Failed to fetch related anime:', err);
+    }
+    return [];
+  }, CACHE_TTL.ANIME);
+}
+
+export async function scrapeRecommendations(slug: string, refresh?: boolean): Promise<AnimeCard[]> {
+  const cacheKey = `anime:recommendations:${slug}`;
+  if (refresh) {
+    cache.del(cacheKey);
+  }
+
+  return getOrSet(cacheKey, async () => {
+    const $ = await fetchPage(`/watch/${slug}`, undefined, refresh);
+    return parseRecommendations($);
+  }, CACHE_TTL.ANIME);
 }

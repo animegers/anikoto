@@ -344,23 +344,117 @@ const spec = {
                             },
                           },
                         },
-                        related: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              id: { type: "string" },
-                              malId: { type: "string" },
-                              title: { type: "string" },
-                              titleJp: { type: "string" },
-                              image: { type: "string" },
-                              relation: { type: "string" },
-                              href: { type: "string" },
-                              slug: { type: "string" },
-                            },
-                          },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": { description: "Anime not found" },
+          "500": { description: "Internal server error" },
+        },
+      },
+    },
+
+    "/anime/{slug}/related": {
+      get: {
+        tags: ["Anime"],
+        summary: "Anime related listing",
+        description:
+          "Returns the related anime list (watch order/sequels/prequels/etc.) for a given anime slug.",
+        operationId: "getAnimeRelated",
+        parameters: [
+          {
+            name: "slug",
+            in: "path",
+            required: true,
+            description: "Anime slug from the URL",
+            schema: { type: "string" },
+            example: "one-piece-odmau",
+          },
+          {
+            name: "refresh",
+            in: "query",
+            required: false,
+            description: "Set to 1 to bypass cache",
+            schema: { type: "string", enum: ["1"] },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Related anime list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    ok: { type: "boolean", example: true },
+                    cached: { type: "boolean" },
+                    data: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          id: { type: "string" },
+                          malId: { type: "string" },
+                          title: { type: "string" },
+                          titleJp: { type: "string" },
+                          image: { type: "string" },
+                          relation: { type: "string" },
+                          href: { type: "string" },
+                          slug: { type: "string" },
                         },
                       },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "404": { description: "Anime not found" },
+          "500": { description: "Internal server error" },
+        },
+      },
+    },
+
+    "/anime/{slug}/recommendations": {
+      get: {
+        tags: ["Anime"],
+        summary: "Anime recommendations listing",
+        description:
+          "Returns recommended anime cards for a given anime slug.",
+        operationId: "getAnimeRecommendations",
+        parameters: [
+          {
+            name: "slug",
+            in: "path",
+            required: true,
+            description: "Anime slug from the URL",
+            schema: { type: "string" },
+            example: "one-piece-odmau",
+          },
+          {
+            name: "refresh",
+            in: "query",
+            required: false,
+            description: "Set to 1 to bypass cache",
+            schema: { type: "string", enum: ["1"] },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Recommendations anime card list",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    ok: { type: "boolean", example: true },
+                    cached: { type: "boolean" },
+                    data: {
+                      type: "array",
+                      items: { $ref: "AnimeCard" },
                     },
                   },
                 },

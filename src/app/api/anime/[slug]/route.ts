@@ -62,7 +62,7 @@ export async function GET(
     const key = `anime:${slug}${rangeSuffix}`;
 
     const data = refresh
-      ? await fetchAndCombine(slug, startEpisode, endEpisode)
+      ? await fetchAndCombine(slug, startEpisode, endEpisode, true)
       : await getOrSet(key, () => fetchAndCombine(slug, startEpisode, endEpisode), CACHE_TTL.ANIME);
 
     return NextResponse.json({ ok: true, data });
@@ -75,17 +75,11 @@ export async function GET(
 
 /**
  * Fetch anime detail and episodes in parallel.
- * Episodes are fetched first (cached internally), then passed to scrapeAnimeDetail
- * so it doesn't perform a second redundant scrape.
  */
-async function fetchAndCombine(slug: string, startEpisode?: number, endEpisode?: number) {
-  // Fetch episodes (which internally caches the raw unfiltered list) and detail concurrently.
-  // scrapeAnimeDetail will reuse the cached raw episodes via fetchAllEpisodes.
+async function fetchAndCombine(slug: string, startEpisode?: number, endEpisode?: number, refresh?: boolean) {
   const [episodes, detail] = await Promise.all([
-    scrapeAnimeEpisodes(slug, startEpisode, endEpisode),
-    scrapeAnimeDetail(slug),
+    scrapeAnimeEpisodes(slug, startEpisode, endEpisode, refresh),
+    scrapeAnimeDetail(slug, refresh),
   ]);
-  const episodesWithoutRelated = { ...episodes };
-  delete episodesWithoutRelated.related;
-  return { ...detail, episodes: episodesWithoutRelated };
+  return { ...detail, episodes };
 }

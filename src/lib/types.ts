@@ -120,8 +120,6 @@ export interface AnimeDetail {
   studios: string[];
   producers: string[];
   watchUrl: string;
-  episodes: AnimeEpisodes;
-  related?: RelatedAnime[];
 }
 
 // ─── Episode List ────────────────────────────────────────────────────────────
@@ -142,7 +140,6 @@ export interface AnimeEpisodes {
   animeId: string;
   slug: string;
   episodes: Episode[];
-  related?: RelatedAnime[];
 }
 
 // ─── Search / Filter ─────────────────────────────────────────────────────────

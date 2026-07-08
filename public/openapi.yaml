@@ -342,6 +342,68 @@ paths:
         '500':
           $ref: '#/components/responses/Error'
 
+  /anime/{slug}/related:
+    get:
+      tags: [Anime]
+      summary: Related anime listing
+      description: Returns related anime (watch order/sequels/prequels/etc.) for a given anime slug.
+      operationId: getAnimeRelated
+      parameters:
+        - $ref: '#/components/parameters/slug'
+        - $ref: '#/components/parameters/refresh'
+      responses:
+        '200':
+          description: Related anime list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  cached:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RelatedAnime'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Error'
+
+  /anime/{slug}/recommendations:
+    get:
+      tags: [Anime]
+      summary: Anime recommendations listing
+      description: Returns recommended anime cards for a given anime slug.
+      operationId: getAnimeRecommendations
+      parameters:
+        - $ref: '#/components/parameters/slug'
+        - $ref: '#/components/parameters/refresh'
+      responses:
+        '200':
+          description: Recommendations listing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  cached:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AnimeCard'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Error'
+
   /latest:
     get:
       tags: [Browse]
@@ -798,10 +860,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Episode'
-        related:
-          type: array
-          items:
-            $ref: '#/components/schemas/RelatedAnime'
 
     AnimeDetail:
       type: object
@@ -861,10 +919,6 @@ components:
           type: string
         episodes:
           $ref: '#/components/schemas/AnimeEpisodes'
-        related:
-          type: array
-          items:
-            $ref: '#/components/schemas/RelatedAnime'
 
     # ─── Search / Filter ───────────────────────────────────────────
     SearchResult:
