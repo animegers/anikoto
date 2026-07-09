@@ -2,7 +2,7 @@ import * as cheerio from 'cheerio';
 import { fetchJson } from '../fetcher';
 import { scrapeAnimeEpisodes } from './anime.scraper';
 import { Episode } from '../types';
-import { extractStreamUrl, extractKiwiMapper, extractVidstream, SubtitleTrack } from '../extractors';
+import { extractStreamUrl, extractVidstream, SubtitleTrack } from '../extractors';
 import { BASE_URL } from '../constants';
 
 export interface VideoServer {
@@ -98,37 +98,6 @@ function buildSourceTasks(
 ): Array<Promise<VideoSource | null>> {
   const epReferer = `${BASE_URL}/watch/${slug}/ep-${epNum}`;
 
-  // Kiwi Mapper — sub and dub run in parallel, resolved individually
-  const kiwiTasks: Array<Promise<VideoSource | null>> = [];
-  if (ep.dataMal && ep.dataTimestamp) {
-    for (const type of ['sub', 'dub'] as const) {
-      kiwiTasks.push(
-        withTimeout(
-          extractKiwiMapper(ep.dataMal, ep.number, ep.dataTimestamp, type, BASE_URL),
-          SERVER_TIMEOUT_MS,
-          `Kiwi Mapper (${type})`
-        ).then((extracted): VideoSource | null => {
-          if (!extracted) return null;
-          return {
-            server: 'Kiwi Stream',
-            type,
-            url: extracted.m3u8,
-            m3u8: extracted.m3u8,
-            referer: extracted.referer,
-            proxyUrl: getProxyUrl(extracted.m3u8, extracted.referer),
-            tracks: extracted.tracks?.map((t) => ({
-              ...t,
-              proxyUrl: getProxyUrl(t.file, extracted.referer),
-            })) || [],
-          };
-        }).catch((err) => {
-          console.error(`Skipping Kiwi Mapper (${type}):`, err instanceof Error ? err.message : err);
-          return null;
-        })
-      );
-    }
-  }
-
   // Regular servers
   const serverTasks: Array<Promise<VideoSource | null>> = servers.map(async (server) => {
     try {
@@ -194,7 +163,7 @@ function buildSourceTasks(
     }
   });
 
-  return [...kiwiTasks, ...serverTasks];
+  return serverTasks;
 }
 
 /**
@@ -266,8 +235,7 @@ export async function* scrapeWatchStream(
   type Tagged = Promise<{ source: VideoSource | null; self: Tagged }>;
   const pending = new Set<Tagged>();
   for (const task of tasks) {
-    let tagged!: Tagged;
-    tagged = task.then((source) => ({ source, self: tagged }));
+    const tagged: Tagged = task.then((source) => ({ source, self: tagged }));
     pending.add(tagged);
   }
 
