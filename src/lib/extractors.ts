@@ -8,10 +8,17 @@ export interface SubtitleTrack {
   default?: boolean;
 }
 
+export interface IntroOutro {
+  start: number;
+  end: number;
+}
+
 export interface ExtractedStream {
   m3u8: string;
   referer: string;
   tracks: SubtitleTrack[];
+  intro?: IntroOutro;
+  outro?: IntroOutro;
 }
 
 let _keysCache: Record<string, string> | null = null;
@@ -46,6 +53,13 @@ async function _doMegaplay(
 
   let m3u8: string | undefined = data?.sources?.file;
   const tracks: SubtitleTrack[] = data?.tracks || [];
+  
+  const intro = data?.intro && typeof data.intro.start === 'number' && typeof data.intro.end === 'number'
+    ? { start: data.intro.start, end: data.intro.end }
+    : undefined;
+  const outro = data?.outro && typeof data.outro.start === 'number' && typeof data.outro.end === 'number'
+    ? { start: data.outro.start, end: data.outro.end }
+    : undefined;
 
   if (m3u8 && m3u8.includes('mewstream.buzz')) {
     let replacementHost = '1oe.lostproject.club';
@@ -62,7 +76,7 @@ async function _doMegaplay(
     } catch (_) {}
   }
 
-  return m3u8 ? { m3u8, referer, tracks } : null;
+  return m3u8 ? { m3u8, referer, tracks, intro, outro } : null;
 }
 
 async function _doMegacloud(
@@ -94,9 +108,16 @@ async function _doMegacloud(
   });
 
   const tracks: SubtitleTrack[] = data?.tracks || [];
+  
+  const intro = data?.intro && typeof data.intro.start === 'number' && typeof data.intro.end === 'number'
+    ? { start: data.intro.start, end: data.intro.end }
+    : undefined;
+  const outro = data?.outro && typeof data.outro.start === 'number' && typeof data.outro.end === 'number'
+    ? { start: data.outro.start, end: data.outro.end }
+    : undefined;
 
   if (!data.encrypted || data.sources?.[0]?.file.includes('.m3u8')) {
-    return data.sources?.[0]?.file ? { m3u8: data.sources[0].file, referer, tracks } : null;
+    return data.sources?.[0]?.file ? { m3u8: data.sources[0].file, referer, tracks, intro, outro } : null;
   }
 
   const keys = await getMegacloudKeys();
@@ -113,7 +134,7 @@ async function _doMegacloud(
   const m3u8 = (typeof decrypted === 'string' ? decrypted : JSON.stringify(decrypted)).match(
     /"file":"(.*?)"/
   )?.[1];
-  return m3u8 ? { m3u8, referer, tracks } : null;
+  return m3u8 ? { m3u8, referer, tracks, intro, outro } : null;
 }
 
 export async function extractVidstream(
