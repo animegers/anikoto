@@ -844,7 +844,81 @@ const spec = {
                     cached: { type: "boolean" },
                     data: {
                       type: "object",
-                      description: "Streaming server list with m3u8 URLs and subtitle tracks",
+                      description: "Streaming server list with m3u8 URLs, subtitle tracks, and skip ranges",
+                      properties: {
+                        episode: {
+                          type: "object",
+                          properties: {
+                            number: { type: "string", example: "1" },
+                            href: { type: "string", example: "#" },
+                            id: { type: "string", example: "131818" },
+                            dataIds: { type: "string", example: "..." },
+                            dataMal: { type: "string", example: "59970" },
+                            dataTimestamp: { type: "string", example: "1778859916" },
+                            hasDub: { type: "boolean", example: true },
+                            hasSub: { type: "boolean", example: true },
+                          },
+                        },
+                        skip_data: {
+                          type: "object",
+                          nullable: true,
+                          properties: {
+                            intro: {
+                              type: "object",
+                              properties: {
+                                start: { type: "integer", example: 111 },
+                                end: { type: "integer", example: 199 },
+                              },
+                            },
+                            outro: {
+                              type: "object",
+                              properties: {
+                                start: { type: "integer", example: 1344 },
+                                end: { type: "integer", example: 1440 },
+                              },
+                            },
+                          },
+                        },
+                        servers: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              id: { type: "string", example: "..." },
+                              name: { type: "string", example: "VidPlay-1" },
+                              type: { type: "string", example: "sub" },
+                              svId: { type: "string", example: "8e4" },
+                            },
+                          },
+                        },
+                        sources: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              server: { type: "string", example: "Vidstream-2" },
+                              type: { type: "string", example: "sub" },
+                              url: { type: "string", example: "https://megaplay.buzz/stream/..." },
+                              m3u8: { type: "string", nullable: true, example: "https://..." },
+                              referer: { type: "string", example: "https://megaplay.buzz/" },
+                              proxyUrl: { type: "string", nullable: true, example: "/api/proxy?url=..." },
+                              tracks: {
+                                type: "array",
+                                items: {
+                                  type: "object",
+                                  properties: {
+                                    file: { type: "string", example: "https://..." },
+                                    label: { type: "string", example: "English" },
+                                    kind: { type: "string", example: "captions" },
+                                    default: { type: "boolean", example: true },
+                                    proxyUrl: { type: "string", example: "/api/proxy?url=..." },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
                     },
                   },
                 },

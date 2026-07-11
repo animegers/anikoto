@@ -630,8 +630,7 @@ paths:
                   cached:
                     type: boolean
                   data:
-                    type: object
-                    description: Streaming server list with m3u8 URLs and subtitle tracks
+                    $ref: '#/components/schemas/WatchData'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -974,6 +973,92 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AnimeCard'
+
+    # ─── Watch ─────────────────────────────────────────────────────
+    IntroOutro:
+      type: object
+      properties:
+        start:
+          type: integer
+          example: 111
+        end:
+          type: integer
+          example: 199
+
+    VideoServer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        svId:
+          type: string
+
+    VideoTrack:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+        label:
+          type: string
+        kind:
+          type: string
+        default:
+          type: boolean
+        proxyUrl:
+          type: string
+
+    VideoSource:
+      type: object
+      properties:
+        server:
+          type: string
+        type:
+          type: string
+        url:
+          type: string
+          format: uri
+        m3u8:
+          type: string
+          format: uri
+          nullable: true
+        referer:
+          type: string
+          format: uri
+        proxyUrl:
+          type: string
+          format: uri
+          nullable: true
+        tracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoTrack'
+
+    WatchData:
+      type: object
+      properties:
+        episode:
+          $ref: '#/components/schemas/Episode'
+        skip_data:
+          type: object
+          nullable: true
+          properties:
+            intro:
+              $ref: '#/components/schemas/IntroOutro'
+            outro:
+              $ref: '#/components/schemas/IntroOutro'
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoServer'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoSource'
 
     # ─── API Error ─────────────────────────────────────────────────
     ApiError:

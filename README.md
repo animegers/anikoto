@@ -33,7 +33,7 @@
 
 ## ✨ Features
 
-- 15 REST endpoints covering home, search, filter, anime detail, episodes, related, recommendations, tooltip, schedule, streaming sources, and a streaming proxy
+- 15 REST endpoints covering home, search, filter, anime detail, episodes, related, recommendations, tooltip, schedule, streaming sources (with opening/ending skip ranges), and a streaming proxy
 - Response envelope — every response is `{ ok: true, data: ... }` or `{ ok: false, message: "..." }`
 - In-memory cache (TTL per endpoint) — add `?refresh=1` to any request to bypass
 - Interactive **Swagger UI** docs at `/` powered by an OpenAPI 3.0 spec (`public/openapi.yaml`)
@@ -72,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the interactive API d
 | GET | `/api/genre/:genre?page=` | Browse by genre slug (returns `results` & optional `topRated`) |
 | GET | `/api/type/:type?page=` | Browse by media type: `tv`, `movie`, `ova`, `ona`, `special`, `music` (returns `results` & optional `topRated`) |
 | GET | `/api/schedule?tz=&images=` | Weekly airing schedule (optional UTC tz offset in hours and image resolution) |
-| GET | `/api/watch/:slug?ep=` | Streaming sources (m3u8 + subs) |
+| GET | `/api/watch/:slug?ep=` | Streaming sources (m3u8, subtitles, and opening/ending skip ranges) |
 | GET | `/api/proxy?url=` | Streaming proxy (CORS bypass) |
 
 See the **full interactive documentation** at `/` (when running locally) or in [`public/openapi.yaml`](./public/openapi.yaml).
